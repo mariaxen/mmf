@@ -1,7 +1,7 @@
 
 # To train a model for VIVA use: 
-# config=projects/viva/direct.yaml 
-# model=viva_model datasets=viva
+ config=projects/viva/direct.yaml 
+ model=viva_model datasets=viva
 
 <div align="center">
 <img src="https://mmf.sh/img/logo.svg" width="50%"/>

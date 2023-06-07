@@ -105,6 +105,7 @@ class LogisticsCallback(Callback):
                 ),
             }
         )
+        
         self.train_timer.reset()
         summarize_report(
             current_iteration=self.trainer.current_iteration,
@@ -113,13 +114,15 @@ class LogisticsCallback(Callback):
             meter=kwargs["meter"],
             extra=extra,
             tb_writer=self.tb_writer,
-            wandb_logger=self.wandb_logger,
+            wandb_logger=self.wandb_logger
         )
+
 
     def on_validation_start(self, **kwargs):
         self.snapshot_timer.reset()
 
     def on_validation_end(self, **kwargs):
+
         max_updates = getattr(self.trainer, "max_updates", None)
         num_updates = getattr(self.trainer, "num_updates", None)
         extra = {
@@ -131,6 +134,7 @@ class LogisticsCallback(Callback):
         }
         extra.update(self.trainer.early_stop_callback.early_stopping.get_info())
         self.train_timer.reset()
+
         summarize_report(
             current_iteration=self.trainer.current_iteration,
             num_updates=num_updates,
@@ -138,7 +142,7 @@ class LogisticsCallback(Callback):
             meter=kwargs["meter"],
             extra=extra,
             tb_writer=self.tb_writer,
-            wandb_logger=self.wandb_logger,
+            wandb_logger=self.wandb_logger
         )
 
     def on_test_end(self, **kwargs):

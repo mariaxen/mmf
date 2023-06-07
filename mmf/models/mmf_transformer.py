@@ -18,6 +18,8 @@ from mmf.utils.build import build_encoder
 from omegaconf import MISSING, OmegaConf
 from torch import nn, Tensor
 
+from mmf.datasets.builders.viva._utils import img2gif
+
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +254,10 @@ class MMFTransformer(BaseTransformer):
             # For a feature which is of shape B X D and
             # is not text (which is B X L converted later by embeddings to B X L X D)
             # We convert it to B X 1 X D to signify single position dim.
+            print("self.modality_type[idx]", self.modality_type[idx])
+            print("modality_type keys", self.modality_type.keys())
+            #print(input_ids[modality])
+            print("input_ids[modality].shape",input_ids[modality].shape)
             if self.modality_type[idx] != "text" and input_ids[modality].dim() == 2:
                 input_ids[modality] = input_ids[modality].unsqueeze(1)
 

@@ -14,18 +14,18 @@ training:
     seed: -1
     # Name of the experiment, will be used while saving checkpoints
     # and generating reports
-    experiment_name: run
+    experiment_name: mmf_video_audio
     # Maximum number of iterations the training will run
     max_updates: 22000
     # Maximum epochs in case you don't want to use max_updates
     # Can be mixed with max iterations, so it will stop whichever is
     # completed first. Default: null means epochs won't be used
-    max_epochs: null
+    max_epochs: 25
 
     # After `log_interval` updates, current update's training loss will be
     # reported. This will also report validation on a single batch from validation set
     # to provide an estimate on validation side
-    log_interval: 100
+    log_interval: 1
     # Level of logging, only logs which are >= to current level will be logged
     logger_level: info
     # Log format: json, simple
@@ -47,7 +47,7 @@ training:
     # Weights and Biases control, by default Weights and Biases (wandb) is disabled
     wandb:
         # Whether to use Weights and Biases Logger, (Default: false)
-        enabled: false
+        enabled: true
         # An entity is a username or team name where you're sending runs.
         # This is necessary if you want to log your metrics to a team account. By default
         # it will log the run to your user account.
@@ -79,7 +79,7 @@ training:
     # KxN (without incurring the memory overhead of setting batch_size to KxN).
     update_frequency: 1
     # Number of workers to be used in dataloaders
-    num_workers: 4
+    num_workers: 2 #4
     # Some datasets allow fast reading by loading everything in the memory
     # Use this to enable it
     fast_read: false
@@ -93,10 +93,10 @@ training:
 
     # After `checkpoint_interval` number of updates, MMF will make a snapshot
     # which will involve creating a checkpoint for current training scenarios
-    checkpoint_interval: 1000
+    checkpoint_interval: 285 #1000
     # This will evaluate evaluation metrics on whole validation set after
     # evaluation interval number of updates
-    evaluation_interval: 1000
+    evaluation_interval: 1 #1000
     # Whether gradients should be clipped
     clip_gradients: false
     # Mode for clip norm
@@ -137,7 +137,7 @@ training:
     # Warmup factor learning rate warmup
     warmup_factor: 0.2
     # Iteration until which warnup should be done
-    warmup_iterations: 1000
+    warmup_iterations: 340
 
     # Device on which the model will be trained. Set 'cpu' to train/infer on CPU
     device: cuda
@@ -153,7 +153,7 @@ training:
 
     # By default metrics evaluation is turned off during training. Set this to true
     # to enable evaluation every log_interval number of updates
-    evaluate_metrics: false
+    evaluate_metrics: true
 
     # This will enable anomaly detection mode in PyTorch. Use this for debugging
     # purposes if you see NaN issues in your experiments.
@@ -164,7 +164,7 @@ training:
     # FP16 support through torch.cuda.amp autocast and grad scaler.
     # Set to true to activate fp16 for faster performance with negligible
     # drop in results.
-    fp16: false
+    fp16: true
 
     # Users can define their own callback functions in the trainer, e.g. adjust
     # learning rate, plot data in tensorboard, etc.
@@ -189,19 +189,19 @@ trainer:
     # https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-class-api
     type: lightning
     params:
-        gpus: 1
+        gpus: 8
         num_nodes: 1
         precision: 32
         deterministic: false
         benchmark: false
         max_steps: 22000
-        max_epochs: null
+        max_epochs: 10
         gradient_clip_val: 0.0
         num_sanity_val_steps: 0
         enable_checkpointing: true
         accumulate_grad_batches: 1
-        val_check_interval: 1000
-        log_every_n_steps: 100
+        val_check_interval: 5
+        log_every_n_steps: 10
         logger: false
         limit_val_batches: 1.0
         # progress bar is turned off if want same logging format as `mmf_trainer`
@@ -222,14 +222,14 @@ trainer:
 # Configuration for evaluation
 evaluation:
     # Metrics for evaluation
-    metrics: []
+    metrics: ["accuracy", "specificity", "sensitivity", "npv", "ppv", "confusion_matrix"]
     # Use CPU for metrics and other calculations, you can use this option if
     # you see OOM in validation as in metrics are calculated globally
-    use_cpu: false
+    use_cpu: true
     # Generate predictions in a file
-    predict: false
+    predict: true
     # Prediction file format (csv|json), default is json
-    predict_file_format: json
+    predict_file_format: csv
     # Test reporter params. Defaults to type: file
     reporter:
         type: file
@@ -257,7 +257,7 @@ config: null
 # Type of run, train+inference by default means both training and inference
 # (test) stage will be run, if run_type contains 'val',
 # inference will be run on val set also.
-run_type: train_inference
+run_type: train_val
 
 # Configuration for optimizer, examples can be found in models' configs in
 # configs folder
@@ -299,27 +299,27 @@ env:
     # Directory for saving logs, default is "logs" inside the save folder
     # If log_dir is specifically passed, logs will be written inside that folder
     # Use MMF_LOG_DIR or env.log_dir to override
-    log_dir: ${oc.env:MMF_LOG_DIR,}
+    log_dir: ${oc.env:MMF_LOG_DIR,''}
 
     # Directory for saving reports, if not passed a opts based folder will be generated
     # inside save_dir/reports and reports will be saved there
     # Use MMF_REPORT_DIR or env.report_dir to override
-    report_dir: ${oc.env:MMF_REPORT_DIR,}
+    report_dir: ${oc.env:MMF_REPORT_DIR,''}
 
     # Log directory for tensorboard, default points to same as logs
     # Only used when training.tensorboard is enabled.
     # Use MMF_TENSORBOARD_LOGDIR or env.tensorboard_logdir to override
-    tensorboard_logdir: ${oc.env:MMF_TENSORBOARD_LOGDIR,}
+    tensorboard_logdir: ${oc.env:MMF_TENSORBOARD_LOGDIR,''}
 
     # Log directory for Weights and Biases, default points to same as logs
     # Only used when training.wandb is enabled.
     # Use MMF_WANDB_LOGDIR or env.wandb_logdir to override
-    wandb_logdir: ${oc.env:MMF_WANDB_LOGDIR,}
+    wandb_logdir: ${oc.env:MMF_WANDB_LOGDIR,''}
 
     # User directory where user can keep their own models independent of MMF
     # This allows users to create projects which only include MMF as dependency
     # Use MMF_USER_DIR or env.user_dir to specify
-    user_dir: ${oc.env:MMF_USER_DIR,}
+    user_dir: ${oc.env:MMF_USER_DIR,''}
 
 ###
 # Configuration for the distributed setup
@@ -397,6 +397,6 @@ checkpoint:
 
 
 multitasking:
-    enabled: true
+    enabled: false
     type: size_proportional
     params: {}

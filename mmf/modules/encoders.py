@@ -37,6 +37,7 @@ try:
 except ImportError:
     pass
 
+from .modeling_timesformer import TimesformerModel
 
 logger = logging.getLogger()
 
@@ -800,7 +801,8 @@ class R2Plus1D18VideoEncoder(PooledEncoder):
             pretrained=config.get("pretrained", True)
         )
         modules = list(model.children())[:-2]
-        return nn.Sequential(*modules)
+        output=nn.Sequential(*modules)
+        return output
 
 
 @registry.register_encoder("resnet18_audio")
@@ -851,3 +853,53 @@ class ViTEncoder(Encoder):
             kwargs["output_hidden_states"] = False
         output = self.module(*args, **kwargs)
         return output["last_hidden_state"], output.get("hidden_states", None)
+
+
+#@registry.register_encoder("timesformer")
+#class TimesFormerEncoder(Encoder):
+ #   @dataclass
+  #  class Config(Encoder.Config):
+   #     name: str = "timesformer"
+    #    random_init: bool = False
+     #   gradient_checkpointing: bool = False
+
+#    def __init__(self, config: Config, *args, **kwargs):
+ #       super().__init__()
+  #      self.config = config
+   #     self.module = TimesformerModel.from_pretrained("facebook/timesformer-base-finetuned-k400")
+    #    self.embeddings = self.module.embeddings
+     #   self.out_dim = self.module.config.hidden_size
+
+#    def forward(self, *args, **kwargs):
+ #       if "output_hidden_states" not in kwargs:
+  #          kwargs["output_hidden_states"] = False
+   #     output = self.module(*args, **kwargs)
+    #    return output["last_hidden_state"]
+
+
+@registry.register_encoder("timesformer")
+class TimesFormerEncoder(PooledEncoder):
+    """
+    R2Plus1D based video encoder. Returns back a tensor of dim 2048.
+    By default, pretrained version is used.
+    See https://arxiv.org/abs/1711.11248.
+    """
+
+    @dataclass
+    class Config(PooledEncoder.Config):
+        name: str = "timesformer"
+        out_dim: int = 768  # out dim
+        pretrained: bool = True  # if should use pretrained version or not
+        three_d: bool = True
+
+    def build_encoder(self, config: Config, *args, **kwargs):
+        model = TimesformerModel.from_pretrained("fcakyon/timesformer-base-finetuned-k400")
+        return model
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.encoder(x)
+        #out = out["last_hidden_state"]
+        #self.pool = nn.AdaptiveAvgPool1d((1,))
+        #out = out = self.pool(out.transpose(1, 2))
+        #out = out.transpose(1, 2).contiguous()
+        return out

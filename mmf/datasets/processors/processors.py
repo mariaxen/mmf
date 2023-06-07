@@ -97,7 +97,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BatchProcessorConfigType:
     processors: ProcessorConfigType
-
+        
 
 class BaseProcessor:
     """Every processor in MMF needs to inherit this class for compatibility
@@ -175,6 +175,24 @@ class Processor:
             return getattr(self.processor, name)
         else:
             raise AttributeError(f"The processor {name} doesn't exist in the registry.")
+
+
+@registry.register_processor("tabular_standardize")
+class TabularStandardizeProcessor(BaseProcessor):
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config, *args, **kwargs)
+        self.eps = config.get("eps", 1e-10)
+
+    def __call__(self, item):
+        # Ensure the tabular data is of float type
+        item = item.float()
+        
+        # Standardize the tabular data
+        mean = torch.mean(item, dim=0)
+        std = torch.std(item, dim=0)
+        tabular = (item - mean) / (std + self.eps)
+        
+        return item
 
 
 class BatchProcessor(BaseProcessor):

@@ -58,8 +58,13 @@ from sklearn.metrics import (
     precision_recall_curve,
     precision_recall_fscore_support,
     roc_auc_score,
+    confusion_matrix,
 )
+
 from torch import Tensor
+import numpy as np
+import matplotlib.pyplot as plt
+import itertools
 
 
 def _convert_to_one_hot(expected, output):
@@ -240,6 +245,263 @@ class BaseMetric:
         return len(self._dataset_names) == 0 or dataset_name in self._dataset_names
 
 
+@registry.register_metric("confusion_matrix")
+class ConfusionMatrixMetric(BaseMetric):
+    def __init__(self, score_key="scores", target_key="targets", topk=1, num_classes=2, normalize=None):
+        super().__init__("confusion_matrix")
+        self.num_classes = num_classes
+        self.normalize = normalize
+        self.score_key = score_key
+        self.target_key = target_key
+        self.topk = topk
+
+    def calculate(self, sample_list, model_output, *args, **kwargs):
+        """Calculate sensitivity and return it back.
+
+        Args:
+            sample_list (SampleList): SampleList provided by DataLoader for
+                                the current iteration.
+            model_output (Dict): Dict returned by the model.
+
+        Returns:
+            torch.FloatTensor: Sensitivity.
+
+        """
+        output = model_output[self.score_key]
+        batch_size = output.shape[0]
+        expected = sample_list[self.target_key]
+
+        assert (
+            output.dim() <= 2
+        ), "Output from model shouldn't have more than dim 2 for accuracy"
+        assert (
+            expected.dim() <= 2
+        ), "Expected target shouldn't have more than dim 2 for accuracy"
+
+        if output.dim() == 2:
+            output = output.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        # If more than 1
+        # If last dim is 1, we directly have class indices
+        if expected.dim() == 2 and expected.size(-1) != 1:
+            expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+        
+        # Compute false positives, true positives, false negatives, true negatives
+        FP = ((output == 1) & (expected == 0)).sum().float()
+        FN = ((output == 0) & (expected == 1)).sum().float()
+        TP = ((output == 1) & (expected == 1)).sum().float()
+        TN = ((output == 0) & (expected == 0)).sum().float()
+        predicted_admitted=((output == 1)).sum().float()
+        predicted_discharged=((output == 0)).sum().float()
+        actual_admitted=((expected == 1)).sum().float()
+        actual_discharged=((expected == 0)).sum().float()
+
+        #return {"false_positives": FP, "true_positives": TP, "false_negatives": FN, "true_negatives": TN, 
+         #       "admitted": admitted, "discharged": discharged, "batch_size": batch_size}
+        
+        return {"false_positives": FP, "true_positives": TP, "false_negatives": FN, "true_negatives": TN, 
+                "predicted_admitted": predicted_admitted, "predicted_discharged": predicted_discharged,
+                "actual_admitted": actual_admitted, "actual_discharged": actual_discharged}
+
+@registry.register_metric("specificity")
+class Specificity(BaseMetric):
+    """Metric for calculating specificity (true negative rate).
+
+    **Key:** ``specificity``
+    """
+
+    def __init__(self, score_key="scores", target_key="targets", topk=1):
+        super().__init__("specificity")
+        self.score_key = score_key
+        self.target_key = target_key
+        self.topk = topk
+
+    def calculate(self, sample_list, model_output, *args, **kwargs):
+        """Calculate sensitivity and return it back.
+
+        Args:
+            sample_list (SampleList): SampleList provided by DataLoader for
+                                the current iteration.
+            model_output (Dict): Dict returned by the model.
+
+        Returns:
+            torch.FloatTensor: Sensitivity.
+
+        """
+        output = model_output[self.score_key]
+        expected = sample_list[self.target_key]
+
+        assert (
+            output.dim() <= 2
+        ), "Output from model shouldn't have more than dim 2 for accuracy"
+        assert (
+            expected.dim() <= 2
+        ), "Expected target shouldn't have more than dim 2 for accuracy"
+
+        if output.dim() == 2:
+            output = output.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        # If more than 1
+        # If last dim is 1, we directly have class indices
+        if expected.dim() == 2 and expected.size(-1) != 1:
+            expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        true_negatives = ((output == 0) & (expected == 0)).sum().float()
+        actual_negatives = (expected == 0).sum().float()
+
+        specificity = true_negatives / (actual_negatives+0.0000000001) 
+        return specificity
+
+
+@registry.register_metric("sensitivity")
+class Sensitivity(BaseMetric):
+    """Metric for calculating sensitivity (true positive rate).
+
+    **Key:** ``sensitivity``
+    """
+
+    def __init__(self, score_key="scores", target_key="targets", topk=1):
+        super().__init__("sensitivity")
+        self.score_key = score_key
+        self.target_key = target_key
+        self.topk = topk
+
+    def calculate(self, sample_list, model_output, *args, **kwargs):
+        """Calculate sensitivity and return it back.
+
+        Args:
+            sample_list (SampleList): SampleList provided by DataLoader for
+                                the current iteration.
+            model_output (Dict): Dict returned by the model.
+
+        Returns:
+            torch.FloatTensor: Sensitivity.
+
+        """
+        output = model_output[self.score_key]
+        expected = sample_list[self.target_key]
+
+        assert (
+            output.dim() <= 2
+        ), "Output from model shouldn't have more than dim 2 for accuracy"
+        assert (
+            expected.dim() <= 2
+        ), "Expected target shouldn't have more than dim 2 for accuracy"
+
+        if output.dim() == 2:
+            output = output.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        # If more than 1
+        # If last dim is 1, we directly have class indices
+        if expected.dim() == 2 and expected.size(-1) != 1:
+            expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        true_positives = ((output == 1) & (expected == 1)).sum().float()
+        actual_positives = (expected == 1).sum().float()
+
+        sensitivity = true_positives / (actual_positives+0.0000000001) 
+
+        return sensitivity
+
+@registry.register_metric("npv")
+class NPV(BaseMetric):
+    """Metric for calculating NPV (Negative Predictive Value).
+
+    **Key:** ``npv``
+    """
+
+    def __init__(self, score_key="scores", target_key="targets", topk=1):
+        super().__init__("npv")
+        self.score_key = score_key
+        self.target_key = target_key
+        self.topk = topk
+
+    def calculate(self, sample_list, model_output, *args, **kwargs):
+        """Calculate sensitivity and return it back.
+
+        Args:
+            sample_list (SampleList): SampleList provided by DataLoader for
+                                the current iteration.
+            model_output (Dict): Dict returned by the model.
+
+        Returns:
+            torch.FloatTensor: Sensitivity.
+
+        """
+        output = model_output[self.score_key]
+        expected = sample_list[self.target_key]
+
+        assert (
+            output.dim() <= 2
+        ), "Output from model shouldn't have more than dim 2 for accuracy"
+        assert (
+            expected.dim() <= 2
+        ), "Expected target shouldn't have more than dim 2 for accuracy"
+
+        if output.dim() == 2:
+            output = output.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        # If more than 1
+        # If last dim is 1, we directly have class indices
+        if expected.dim() == 2 and expected.size(-1) != 1:
+            expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        true_negatives = ((output == 0) & (expected == 0)).sum().float()
+        predicted_negatives = (output == 0).sum().float()
+
+        npv = true_negatives / (predicted_negatives+0.0000000001) 
+        return npv
+
+@registry.register_metric("ppv")
+class PPV(BaseMetric):
+    """Metric for calculating PPV (Positive Predictive Value).
+
+    **Key:** ``ppv``
+    """
+
+    def __init__(self, score_key="scores", target_key="targets", topk=1):
+        super().__init__("ppv")
+        self.score_key = score_key
+        self.target_key = target_key
+        self.topk = topk
+
+    def calculate(self, sample_list, model_output, *args, **kwargs):
+        """Calculate sensitivity and return it back.
+
+        Args:
+            sample_list (SampleList): SampleList provided by DataLoader for
+                                the current iteration.
+            model_output (Dict): Dict returned by the model.
+
+        Returns:
+            torch.FloatTensor: Sensitivity.
+
+        """
+        output = model_output[self.score_key]
+        expected = sample_list[self.target_key]
+
+        assert (
+            output.dim() <= 2
+        ), "Output from model shouldn't have more than dim 2 for accuracy"
+        assert (
+            expected.dim() <= 2
+        ), "Expected target shouldn't have more than dim 2 for accuracy"
+
+        if output.dim() == 2:
+            output = output.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        # If more than 1
+        # If last dim is 1, we directly have class indices
+        if expected.dim() == 2 and expected.size(-1) != 1:
+            expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+
+        true_positives = ((output == 1) & (expected == 1)).sum().float()
+        predicted_positives = (expected == 1).sum().float()
+
+        ppv = true_positives / (predicted_positives+0.0000000001) 
+        return ppv
+
+        
 @registry.register_metric("accuracy")
 class Accuracy(BaseMetric):
     """Metric for calculating accuracy.
@@ -285,6 +547,7 @@ class Accuracy(BaseMetric):
             expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
 
         correct = (expected == output.squeeze()).sum().float()
+
         return correct / batch_size
 
 

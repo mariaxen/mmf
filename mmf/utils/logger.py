@@ -219,7 +219,7 @@ def summarize_report(
     should_print=True,
     extra=None,
     tb_writer=None,
-    wandb_logger=None,
+    wandb_logger=None
 ):
     if extra is None:
         extra = {}
@@ -238,7 +238,9 @@ def summarize_report(
 
     if wandb_logger:
         metrics = meter.get_scalar_dict()
-        wandb_logger.log_metrics({**metrics, "trainer/global_step": current_iteration})
+        wandb_logger.log_metrics({**metrics, "trainer/global_step": current_iteration})#, "epoch": extra["epoch"]})
+        #wandb_logger.log_metrics({"epoch": extra["epoch"], "trainer/global_step": current_iteration})
+        #wandb_logger.log_metrics({**metrics, "trainer/epoch": extra["epoch"]})
 
     if not should_print:
         return
@@ -474,6 +476,13 @@ class WandbLogger:
             return
 
         self._wandb.log(metrics, commit=commit)
+
+    def confusion_matrix(self, metrics: Dict[str, float], commit=True):
+
+        if not self._should_log_wandb():
+            return
+
+        self._wandb.sklearn.plot_confusion_matrix(y_test, y_pred, nb.classes_) 
 
     def log_model_checkpoint(self, model_path):
         """

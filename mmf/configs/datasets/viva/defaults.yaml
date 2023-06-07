@@ -1,0 +1,78 @@
+dataset_config:
+  viva:
+    data_dir: ${env.data_dir}/datasets
+    prediction_threshold: 0.5
+    annotations:
+      train:
+      - viva/defaults/Viva/Viva_v1_train.csv
+      val:
+      - viva/defaults/Viva/Viva_v1_test.csv
+      test:
+      - viva/defaults/Viva/Viva_v1_test.csv
+    videos:
+      train:
+      - viva/defaults/alphabets_256
+      val:
+      - viva/defaults/alphabets_256
+      test:
+      - viva/defaults/alphabets_256
+    classes_file: viva/defaults/Viva/Viva_v1_classes.txt
+    processors:
+      text_processor:
+        type: bert_tokenizer
+        params:
+          tokenizer_config:
+            type: bert-base-uncased
+            params:
+              do_lower_case: true
+          mask_probability: 0
+          max_seq_length: 128
+      tabular_processor:
+        type: tabular_standardize
+        params:
+          eps: 1e-10
+      audio_processor:
+        type: torchvision_transforms
+        params:
+          transforms:
+            - type: truncate_or_pad
+              params:
+                output_size: 1000
+            - MelSpectrogram
+            - ToPILImage
+            - type: Resize
+              params:
+                size: [224, 224]
+            - ToTensor
+      video_train_processor:
+        type: video_transforms
+        params:
+          transforms:
+            - permute_and_rescale
+            - type: Resize
+              params:
+                size: [256, 256]
+            - RandomHorizontalFlip
+            - ColorJitter
+            - type: Normalize
+              params:
+                mean: [0.43216, 0.394666, 0.37645]
+                std: [0.22803, 0.22145, 0.216989]
+            - type: RandomCrop
+              params:
+                size: [224, 224]
+      video_test_processor:
+        type: video_transforms
+        params:
+          transforms:
+            - permute_and_rescale
+            - type: Resize
+              params:
+                size: [256, 256]
+            - type: Normalize
+              params:
+                mean: [0.43216, 0.394666, 0.37645]
+                std: [0.22803, 0.22145, 0.216989]
+            - type: RandomCrop
+              params:
+                size: [224, 224]

@@ -245,7 +245,8 @@ class LogitBinaryCrossEntropy(nn.Module):
         """
         scores = model_output["scores"]
         targets = sample_list["targets"]
-        loss = F.binary_cross_entropy_with_logits(scores, targets, reduction="mean")
+        weights = torch.tensor([0.42, 0.58]).cuda()
+        loss = F.binary_cross_entropy_with_logits(scores, targets, reduction="mean", weight=weights)
 
         return loss * targets.size(1)
 

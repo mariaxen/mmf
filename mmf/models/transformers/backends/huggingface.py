@@ -145,6 +145,8 @@ class HuggingfaceEmbeddings(nn.Module):
         ):
             modality_name = self.modality_keys[idx]
             total_embedding = token_emb(tokens_ids[modality_name])
+            print("modality_name", modality_name)
+            print("pos_embedding", pos_emb)
 
             if modality_name in position_ids:
                 total_embedding += pos_emb(position_ids[modality_name])

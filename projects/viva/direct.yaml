@@ -1,0 +1,24 @@
+includes:
+- configs/models/viva/defaults.yaml
+
+optimizer:
+  type: adam_w
+  params:
+    lr: 5e-5 #5e-5
+    eps: 1e-6 #1e-8
+
+scheduler:
+  type: warmup_cosine
+  params:
+    num_warmup_steps: 15
+    num_training_steps: 150
+
+training:
+  batch_size: 64
+  lr_scheduler: true
+  # Don't forget to update schedule_attributes if you update this
+  max_updates: 50
+  find_unused_parameters: true
+  early_stop:
+    criteria: Viva/logit_bce
+    minimize: true

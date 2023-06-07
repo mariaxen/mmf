@@ -12,6 +12,8 @@ from mmf.datasets.processors import BaseProcessor
 from omegaconf import OmegaConf
 from torchvision import transforms as img_transforms
 
+from PIL import Image
+import numpy as np
 
 logger = logging.getLogger()
 
@@ -184,6 +186,9 @@ class VideoTransforms(BaseProcessor):
 
         self.transform = img_transforms.Compose(transforms_list)
 
+        self.gif_counter = 0
+        self.max_gifs = 5  # Change this value to the desired number of GIFs
+
     def get_transform_object(self, transform_type, transform_params):
         from pytorchvideo import transforms as ptv_transforms
 
@@ -196,8 +201,18 @@ class VideoTransforms(BaseProcessor):
         if transform is not None:
             return self.instantiate_transform(transform, transform_params)
 
+#            return img_transforms.Compose(
+ #           [
+  #              ptv_transforms.Permute((0, 3, 1, 2)),
+   #             self.instantiate_transform(transform, transform_params),
+    #            ptv_transforms.Permute((0, 2, 3, 1))
+     #       ]
+      #  )
+
+
         # 3) torchvision.transforms
         img_transform = getattr(img_transforms, transform_type, None)
+
         assert img_transform is not None, (
             f"transform {transform_type} is not found in pytorchvideo "
             "transforms, processor registry, or torchvision transforms"
@@ -222,9 +237,30 @@ class VideoTransforms(BaseProcessor):
         return transform(*transform_params)
 
     def __call__(self, x):
-        # Support both dict and normal mode
+
+        #print("Shape before transformation:", x.shape)
+        video_frames_np = self.transform(x).cpu().numpy()
+        video_frames_np = video_frames_np.transpose(1, 2, 3, 0)
+        video_frames_np = (video_frames_np * 255).astype(np.uint8)
+        image_list = [Image.fromarray(frame) for frame in video_frames_np]
+
+        # Save the GIF only if the maximum number of GIFs has not been reached
+        if self.gif_counter < self.max_gifs:
+            save_path=f"/home/maria/mmf/save/gifs/save_gif_{self.gif_counter}.gif"
+            image_list[0].save(
+                save_path, 
+                save_all=True, 
+                append_images=image_list[1:], 
+                loop=0,
+                duration=1000
+                )
+            self.gif_counter += 1
+
         if isinstance(x, collections.abc.Mapping):
             x = x["video"]
             return {"video": self.transform(x)}
         else:
-            return self.transform(x)
+            x_transformed=self.transform(x)
+            #For timesformer
+            x_transformed=x_transformed.permute(1, 0, 2, 3) 
+            return x_transformed

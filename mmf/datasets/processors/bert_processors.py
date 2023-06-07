@@ -205,7 +205,7 @@ class BertTokenizer(MaskedTokenProcessor):
         output = self._convert_to_indices(
             tokens_a, tokens_b, probability=self._probability
         )
-        output["text"] = output["tokens"]
+        output["text"] = output["input_ids"]
         return output
 
 

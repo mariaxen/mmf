@@ -4,8 +4,8 @@ includes:
 optimizer:
   type: adam_w
   params:
-    lr: 5e-5 #5e-5
-    eps: 1e-6 #1e-8
+    lr: 5e-7 #5e-5
+    eps: 1e-10 #1e-8
 
 scheduler:
   type: warmup_cosine

@@ -1,11 +1,5 @@
 
 <div align="center">
-<img src="https://mmf.sh/img/logo.svg" width="50%"/>
-</div>
-
-#
-
-<div align="center">
   <a href="https://mmf.sh/docs">
   <img alt="Documentation Status" src="https://readthedocs.org/projects/mmf/badge/?version=latest"/>
   </a>

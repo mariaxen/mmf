@@ -7,7 +7,7 @@ model_config:
       params:
         num_output_features: 1
         pool_type: avg
-        out_dim: 2048
+        out_dim: 768
         three_d: true
     audio_encoder: 
       type: resnet18_audio
@@ -18,19 +18,19 @@ model_config:
         out_dim: 2048
         three_d: false
     tabular_transforms: 
-      in_dim: 2
-      out_dim: 12 #512
+      in_dim: 3
+      out_dim: 512
     text_encoder: 
       type: transformer
     interaction_layer: 
-      input_dim: 2060
+      input_dim: 2560
       hidden_dim: 256
       output_dim: 512
     classifier:
       type: mlp
       num_labels: 2
       params:
-        in_dim: 12 #512 #1024
+        in_dim: 512 #512 #1024
         out_dim: 2
     dropout: 0.15
 

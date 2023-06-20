@@ -37,7 +37,7 @@ try:
 except ImportError:
     pass
 
-from .modeling_timesformer import TimesformerModel
+from .modeling_timesformer import TimesformerConfig, TimesformerModel
 
 logger = logging.getLogger()
 
@@ -855,28 +855,6 @@ class ViTEncoder(Encoder):
         return output["last_hidden_state"], output.get("hidden_states", None)
 
 
-#@registry.register_encoder("timesformer")
-#class TimesFormerEncoder(Encoder):
- #   @dataclass
-  #  class Config(Encoder.Config):
-   #     name: str = "timesformer"
-    #    random_init: bool = False
-     #   gradient_checkpointing: bool = False
-
-#    def __init__(self, config: Config, *args, **kwargs):
- #       super().__init__()
-  #      self.config = config
-   #     self.module = TimesformerModel.from_pretrained("facebook/timesformer-base-finetuned-k400")
-    #    self.embeddings = self.module.embeddings
-     #   self.out_dim = self.module.config.hidden_size
-
-#    def forward(self, *args, **kwargs):
- #       if "output_hidden_states" not in kwargs:
-  #          kwargs["output_hidden_states"] = False
-   #     output = self.module(*args, **kwargs)
-    #    return output["last_hidden_state"]
-
-
 @registry.register_encoder("timesformer")
 class TimesFormerEncoder(PooledEncoder):
     """
@@ -893,13 +871,15 @@ class TimesFormerEncoder(PooledEncoder):
         three_d: bool = True
 
     def build_encoder(self, config: Config, *args, **kwargs):
-        model = TimesformerModel.from_pretrained("fcakyon/timesformer-base-finetuned-k400")
+        configuration = TimesformerConfig(image_size = 224, 
+        patch_size = 16, num_channels = 3, num_frames = 8, hidden_size = 768, num_hidden_layers = 12, 
+        num_attention_heads = 12, intermediate_size = 3072, hidden_act = 'gelu', hidden_dropout_prob = 0.0, 
+        attention_probs_dropout_prob = 0.0, initializer_range = 0.02, layer_norm_eps = 1e-06, qkv_bias = True, 
+        attention_type = 'divided_space_time', drop_path_rate = 0)
+
+        model = TimesformerModel(configuration).from_pretrained("fcakyon/timesformer-base-finetuned-k400")
         return model
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.encoder(x)
-        #out = out["last_hidden_state"]
-        #self.pool = nn.AdaptiveAvgPool1d((1,))
-        #out = out = self.pool(out.transpose(1, 2))
-        #out = out.transpose(1, 2).contiguous()
         return out

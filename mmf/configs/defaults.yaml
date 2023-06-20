@@ -14,7 +14,7 @@ training:
     seed: -1
     # Name of the experiment, will be used while saving checkpoints
     # and generating reports
-    experiment_name: mmf_video_audio
+    experiment_name: mmf_sweeps
     # Maximum number of iterations the training will run
     max_updates: 50
     # Maximum epochs in case you don't want to use max_updates

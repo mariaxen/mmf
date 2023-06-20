@@ -65,7 +65,7 @@ class VivaDataset(BaseDataset):
                 "labels": "action_labels",
                 "video": "path",
                 "text": "complaint",
-                "tabular": ["active_medication_count", "past_all_inpatient_enc_count"],
+                "tabular": ["age","active_medication_count","pain_level"],
                 "id": "id",
             },
             num_workers=10,

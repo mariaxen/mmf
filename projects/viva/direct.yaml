@@ -18,7 +18,7 @@ training:
   lr_scheduler: false
   # Don't forget to update schedule_attributes if you update this
   max_updates: 5
-  max_epochs: 1
+  max_epochs: 5
   find_unused_parameters: true
   early_stop:
     enabled: false

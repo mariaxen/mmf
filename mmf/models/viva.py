@@ -28,8 +28,9 @@ class Viva_model(BaseModel):
         self.text_module = build_encoder(self.config.text_encoder)
         self.tabular_transform = torch.nn.Linear(self.config.tabular_transforms.in_dim, self.config.tabular_transforms.out_dim)
         self.tabular_batchnorm = torch.nn.BatchNorm1d(self.config.tabular_transforms.out_dim)
+        self.video_classifier = torch.nn.Linear(self.config.video_encoder.params.out_dim, self.config.classifier.num_labels)
         self.classifier = build_classifier_layer(self.config.classifier)
-        self.dropout = torch.nn.Dropout(self.config.dropout)
+        #self.dropout = torch.nn.Dropout(self.config.dropout)
         self.interaction_layer = torch.nn.Sequential(
                                 torch.nn.Linear(self.config.interaction_layer.input_dim, self.config.interaction_layer.hidden_dim),
                                 torch.nn.ReLU(),
@@ -37,10 +38,11 @@ class Viva_model(BaseModel):
                             )
 
     def forward(self, sample_list):
-        #video = sample_list["video"]  
-        #video_features = self.video_module(video)
+        video = sample_list["video"]  
+        video_features = self.video_module(video)
         #TO DO: pooling
-        #video_features = video_features[0][:, 0]
+        video_features = video_features[0][:, 0]
+        video_logits=self.video_classifier(video_features)
 
         #audio = sample_list["audio"]  
         #audio_features = self.audio_module(audio).squeeze()
@@ -49,13 +51,13 @@ class Viva_model(BaseModel):
         #input_ids = torch.stack([torch.tensor(x) for x in text])
         #text_features = self.text_module(input_ids=input_ids)
 
-        tabular = sample_list["tabular"] 
-        tabular_features = self.tabular_transform(tabular)
+        #tabular = sample_list["tabular"] 
+        #tabular_features = self.tabular_transform(tabular)
         #tabular_features = self.tabular_batchnorm(tabular_features)
 
         #combined = torch.cat([audio_features, video_features, text_features, tabular_features], dim=1)
         #interacted = self.interaction_layer(combined)
-        interacted = self.dropout(tabular_features)
-        scores = self.classifier(interacted)
+        #interacted = self.dropout(interacted)
+        #scores = self.classifier(interacted)
 
-        return {"scores": scores}
+        return {"scores": video_logits}

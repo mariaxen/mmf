@@ -4,17 +4,21 @@ import wandb
 sweep_config = {
     'method': 'bayes',
     'metric': {
-        'name': 'val/viva/logit_bce',
+        'name': 'val/total_loss',
         'goal': 'minimize'
     },
     'parameters': {
         'learning_rate': {
-            'min': 0.0001,
-            'max': 0.1
+            'min': 0.000001,
+            'max': 0.01
         },
         'batch_size': {
-            'values': [16, 32, 64]
+            'values': [32, 64]
         },
+     #   'dropout': {
+      #      'values': [0.15, 0.25, 0.5]
+       # },
+
     }
 }
 
@@ -37,6 +41,7 @@ def train():
         'dataset=viva',
         f'optimizer.params.lr={config.learning_rate}',
         f'training.batch_size={config.batch_size}',
+        #f'model_config.viva_model.dropout={config.dropout}',
         # add any other command line overrides you need here
     ]
 

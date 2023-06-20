@@ -238,6 +238,7 @@ def summarize_report(
 
     if wandb_logger:
         metrics = meter.get_scalar_dict()
+        #print("metrics", metrics)
         wandb_logger.log_metrics({**metrics, "trainer/global_step": current_iteration})#, "epoch": extra["epoch"]})
         #wandb_logger.log_metrics({"epoch": extra["epoch"], "trainer/global_step": current_iteration})
         #wandb_logger.log_metrics({**metrics, "trainer/epoch": extra["epoch"]})
@@ -453,9 +454,9 @@ class WandbLogger:
                     "*", step_metric="trainer/global_step", step_sync=True
                 )
 
-    def __del__(self):
-        if getattr(self, "_wandb", None) is not None:
-            self._wandb.finish()
+    #def __del__(self):
+     #   if getattr(self, "_wandb", None) is not None:
+      #      self._wandb.finish()
 
     def _should_log_wandb(self):
         if self._wandb is None or not is_main():
@@ -476,13 +477,6 @@ class WandbLogger:
             return
 
         self._wandb.log(metrics, commit=commit)
-
-    def confusion_matrix(self, metrics: Dict[str, float], commit=True):
-
-        if not self._should_log_wandb():
-            return
-
-        self._wandb.sklearn.plot_confusion_matrix(y_test, y_pred, nb.classes_) 
 
     def log_model_checkpoint(self, model_path):
         """

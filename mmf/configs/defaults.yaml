@@ -16,7 +16,7 @@ training:
     # and generating reports
     experiment_name: mmf_video_audio
     # Maximum number of iterations the training will run
-    max_updates: 22000
+    max_updates: 50
     # Maximum epochs in case you don't want to use max_updates
     # Can be mixed with max iterations, so it will stop whichever is
     # completed first. Default: null means epochs won't be used
@@ -25,7 +25,7 @@ training:
     # After `log_interval` updates, current update's training loss will be
     # reported. This will also report validation on a single batch from validation set
     # to provide an estimate on validation side
-    log_interval: 1
+    log_interval: 2
     # Level of logging, only logs which are >= to current level will be logged
     logger_level: info
     # Log format: json, simple
@@ -79,7 +79,7 @@ training:
     # KxN (without incurring the memory overhead of setting batch_size to KxN).
     update_frequency: 1
     # Number of workers to be used in dataloaders
-    num_workers: 2 #4
+    num_workers: 4 #4
     # Some datasets allow fast reading by loading everything in the memory
     # Use this to enable it
     fast_read: false
@@ -96,7 +96,7 @@ training:
     checkpoint_interval: 285 #1000
     # This will evaluate evaluation metrics on whole validation set after
     # evaluation interval number of updates
-    evaluation_interval: 1 #1000
+    evaluation_interval: 2 #1000
     # Whether gradients should be clipped
     clip_gradients: false
     # Mode for clip norm
@@ -104,7 +104,7 @@ training:
 
     early_stop:
         # Whether to use early stopping, (Default: false)
-        enabled: false
+        enabled: true
         # Patience for early stoppings
         patience: 4000
         # Criteria to be monitored for early stopping
@@ -334,7 +334,7 @@ distributed:
     # Backend for distributed setup
     backend: nccl
     # Total number of GPUs across all nodes (default: all visible GPUs)
-    world_size: ${device_count:}
+    world_size: 8 #${device_count:}
     # Set if you do not want spawn multiple processes even if
     # multiple GPUs are visible
     no_spawn: false

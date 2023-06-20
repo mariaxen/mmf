@@ -1,0 +1,290 @@
+diff --git a/mmf/configs/defaults.yaml b/mmf/configs/defaults.yaml
+index 256bd16..b8815f2 100644
+--- a/mmf/configs/defaults.yaml
++++ b/mmf/configs/defaults.yaml
+@@ -16,7 +16,7 @@ training:
+     # and generating reports
+     experiment_name: mmf_video_audio
+     # Maximum number of iterations the training will run
+-    max_updates: 22000
++    max_updates: 50
+     # Maximum epochs in case you don't want to use max_updates
+     # Can be mixed with max iterations, so it will stop whichever is
+     # completed first. Default: null means epochs won't be used
+@@ -96,7 +96,7 @@ training:
+     checkpoint_interval: 285 #1000
+     # This will evaluate evaluation metrics on whole validation set after
+     # evaluation interval number of updates
+-    evaluation_interval: 1 #1000
++    evaluation_interval: 2 #1000
+     # Whether gradients should be clipped
+     clip_gradients: false
+     # Mode for clip norm
+@@ -104,7 +104,7 @@ training:
+ 
+     early_stop:
+         # Whether to use early stopping, (Default: false)
+-        enabled: false
++        enabled: true
+         # Patience for early stoppings
+         patience: 4000
+         # Criteria to be monitored for early stopping
+@@ -334,7 +334,7 @@ distributed:
+     # Backend for distributed setup
+     backend: nccl
+     # Total number of GPUs across all nodes (default: all visible GPUs)
+-    world_size: ${device_count:}
++    world_size: 1 #${device_count:}
+     # Set if you do not want spawn multiple processes even if
+     # multiple GPUs are visible
+     no_spawn: false
+diff --git a/mmf/configs/models/viva/defaults.yaml b/mmf/configs/models/viva/defaults.yaml
+index 8f90806..fea43da 100644
+--- a/mmf/configs/models/viva/defaults.yaml
++++ b/mmf/configs/models/viva/defaults.yaml
+@@ -19,18 +19,18 @@ model_config:
+         three_d: false
+     tabular_transforms: 
+       in_dim: 2
+-      out_dim: 512
++      out_dim: 12 #512
+     text_encoder: 
+       type: transformer
+     interaction_layer: 
+-      input_dim: 2560
+-      hidden_dim: 512
+-      output_dim: 1024
++      input_dim: 2060
++      hidden_dim: 256
++      output_dim: 512
+     classifier:
+       type: mlp
+       num_labels: 2
+       params:
+-        in_dim: 1024
++        in_dim: 12 #512 #1024
+         out_dim: 2
+     dropout: 0.15
+ 
+diff --git a/mmf/datasets/builders/viva/dataset.py b/mmf/datasets/builders/viva/dataset.py
+index 85391e8..57da733 100644
+--- a/mmf/datasets/builders/viva/dataset.py
++++ b/mmf/datasets/builders/viva/dataset.py
+@@ -16,7 +16,7 @@ import wandb
+ 
+ class VivaDataset(BaseDataset):
+     def __init__(self, config, dataset_type, imdb_file_index, *args, **kwargs):
+-        super().__init__("Viva", config, dataset_type)
++        super().__init__("viva", config, dataset_type)
+         self.imdb_file_index = imdb_file_index
+         self.load_df()
+         self.length = len(self.video_clips)
+@@ -90,11 +90,10 @@ class VivaDataset(BaseDataset):
+     ):
+         self.labels = df[column_map.get("labels", "labels")].tolist()
+         self.tabular_list = df[column_map.get("tabular", "tabular")].values.tolist()
+-        self.idx_to_class = sorted(
+-            list(set([item for sublist in self.labels for item in sublist]))
+-        )
++        self.idx_to_class = sorted(list(set([item for sublist in self.labels for item in sublist])))
+         self.classes = self.idx_to_class
+-        self.class_to_idx = {self.classes[i]: i for i in range(len(self.classes))}
++        #self.class_to_idx = {self.classes[i]: i for i in range(len(self.classes))}
++        self.class_to_idx =  {'admitted': 1, 'discharged': 0}
+         self.text_list = df[column_map.get("text", "text")].tolist()
+         self.ids_list = df[column_map.get("id", "id")].tolist()
+ 
+diff --git a/mmf/models/viva.py b/mmf/models/viva.py
+index ddb57c1..d8f9b0f 100644
+--- a/mmf/models/viva.py
++++ b/mmf/models/viva.py
+@@ -37,25 +37,25 @@ class Viva_model(BaseModel):
+                             )
+ 
+     def forward(self, sample_list):
+-        video = sample_list["video"]  
+-        video_features = self.video_module(video)
++        #video = sample_list["video"]  
++        #video_features = self.video_module(video)
+         #TO DO: pooling
+-        video_features = video_features[0][:, 0]
++        #video_features = video_features[0][:, 0]
+ 
+-        audio = sample_list["audio"]  
+-        audio_features = self.audio_module(audio).squeeze()
++        #audio = sample_list["audio"]  
++        #audio_features = self.audio_module(audio).squeeze()
+ 
+-        text = sample_list["text"]  
+-        input_ids = torch.stack([torch.tensor(x) for x in text])
+-        text_features = self.text_module(input_ids=input_ids)
++        #text = sample_list["text"]  
++        #input_ids = torch.stack([torch.tensor(x) for x in text])
++        #text_features = self.text_module(input_ids=input_ids)
+ 
+         tabular = sample_list["tabular"] 
+         tabular_features = self.tabular_transform(tabular)
+-        tabular_features = self.tabular_batchnorm(tabular_features)
++        #tabular_features = self.tabular_batchnorm(tabular_features)
+ 
+-        combined = torch.cat([audio_features, video_features, text_features, tabular_features], dim=1)
+-        interacted = self.interaction_layer(combined)
+-        interacted = self.dropout(interacted)
++        #combined = torch.cat([audio_features, video_features, text_features, tabular_features], dim=1)
++        #interacted = self.interaction_layer(combined)
++        interacted = self.dropout(tabular_features)
+         scores = self.classifier(interacted)
+ 
+         return {"scores": scores}
+\ No newline at end of file
+diff --git a/mmf/modules/metrics.py b/mmf/modules/metrics.py
+index d8d8387..628653a 100644
+--- a/mmf/modules/metrics.py
++++ b/mmf/modules/metrics.py
+@@ -268,7 +268,6 @@ class ConfusionMatrixMetric(BaseMetric):
+ 
+         """
+         output = model_output[self.score_key]
+-        batch_size = output.shape[0]
+         expected = sample_list[self.target_key]
+ 
+         assert (
+@@ -285,16 +284,17 @@ class ConfusionMatrixMetric(BaseMetric):
+         # If last dim is 1, we directly have class indices
+         if expected.dim() == 2 and expected.size(-1) != 1:
+             expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
++            #expected = 1-expected.argmax(dim=-1)
+         
+         # Compute false positives, true positives, false negatives, true negatives
+-        FP = ((output == 1) & (expected == 0)).sum().float()
+-        FN = ((output == 0) & (expected == 1)).sum().float()
+-        TP = ((output == 1) & (expected == 1)).sum().float()
+-        TN = ((output == 0) & (expected == 0)).sum().float()
+-        predicted_admitted=((output == 1)).sum().float()
+-        predicted_discharged=((output == 0)).sum().float()
+-        actual_admitted=((expected == 1)).sum().float()
+-        actual_discharged=((expected == 0)).sum().float()
++        FP = ((output == 1) & (expected == 0)).sum().float()*8
++        FN = ((output == 0) & (expected == 1)).sum().float()*8
++        TP = ((output == 1) & (expected == 1)).sum().float()*8
++        TN = ((output == 0) & (expected == 0)).sum().float()*8
++        predicted_admitted=((output == 1)).sum().float()*8
++        predicted_discharged=((output == 0)).sum().float()*8
++        actual_admitted=((expected == 1)).sum().float()*8
++        actual_discharged=((expected == 0)).sum().float()*8
+ 
+         #return {"false_positives": FP, "true_positives": TP, "false_negatives": FN, "true_negatives": TN, 
+          #       "admitted": admitted, "discharged": discharged, "batch_size": batch_size}
+diff --git a/mmf/trainers/callbacks/logistics.py b/mmf/trainers/callbacks/logistics.py
+index ace00d7..e9d06b8 100644
+--- a/mmf/trainers/callbacks/logistics.py
++++ b/mmf/trainers/callbacks/logistics.py
+@@ -146,18 +146,19 @@ class LogisticsCallback(Callback):
+         )
+ 
+     def on_test_end(self, **kwargs):
+-        prefix = "{}: full {}".format(
+-            kwargs["report"].dataset_name, kwargs["report"].dataset_type
+-        )
+-        summarize_report(
+-            current_iteration=self.trainer.current_iteration,
+-            num_updates=getattr(self.trainer, "num_updates", None),
+-            max_updates=getattr(self.trainer, "max_updates", None),
+-            meter=kwargs["meter"],
+-            should_print=prefix,
+-            tb_writer=self.tb_writer,
+-            wandb_logger=self.wandb_logger,
+-        )
++    #    prefix = "{}: full {}".format(
++     #       kwargs["report"].dataset_name, kwargs["report"].dataset_type
++      #  )
++   #     summarize_report(
++    #        current_iteration=self.trainer.current_iteration,
++     #       num_updates=getattr(self.trainer, "num_updates", None),
++      #      max_updates=getattr(self.trainer, "max_updates", None),
++       #     meter=kwargs["meter"],
++        #    should_print=prefix,
++         #   tb_writer=self.tb_writer,
++          #  wandb_logger=self.wandb_logger,
++     #   )
++        
+         logger.info(f"Finished run in {self.total_timer.get_time_since_start()}")
+ 
+     def teardown(self):
+diff --git a/mmf/utils/build.py b/mmf/utils/build.py
+index 9b400de..d23cad3 100644
+--- a/mmf/utils/build.py
++++ b/mmf/utils/build.py
+@@ -323,7 +323,7 @@ def build_dataloader_and_sampler(
+         collate_fn=BatchCollator(
+             dataset_instance.dataset_name, dataset_instance.dataset_type
+         ),
+-        drop_last=is_xla(),  # see also MultiDatasetLoader.__len__
++        drop_last= True, #is_xla(),  # see also MultiDatasetLoader.__len__
+         **other_args,
+     )
+ 
+diff --git a/mmf/utils/logger.py b/mmf/utils/logger.py
+index 8d30fdf..f28e2db 100644
+--- a/mmf/utils/logger.py
++++ b/mmf/utils/logger.py
+@@ -238,6 +238,7 @@ def summarize_report(
+ 
+     if wandb_logger:
+         metrics = meter.get_scalar_dict()
++        #print("metrics", metrics)
+         wandb_logger.log_metrics({**metrics, "trainer/global_step": current_iteration})#, "epoch": extra["epoch"]})
+         #wandb_logger.log_metrics({"epoch": extra["epoch"], "trainer/global_step": current_iteration})
+         #wandb_logger.log_metrics({**metrics, "trainer/epoch": extra["epoch"]})
+@@ -477,13 +478,6 @@ class WandbLogger:
+ 
+         self._wandb.log(metrics, commit=commit)
+ 
+-    def confusion_matrix(self, metrics: Dict[str, float], commit=True):
+-
+-        if not self._should_log_wandb():
+-            return
+-
+-        self._wandb.sklearn.plot_confusion_matrix(y_test, y_pred, nb.classes_) 
+-
+     def log_model_checkpoint(self, model_path):
+         """
+         Log the model checkpoint to the wandb dashboard.
+diff --git a/projects/viva/direct.yaml b/projects/viva/direct.yaml
+index ee60a09..7c4e150 100644
+--- a/projects/viva/direct.yaml
++++ b/projects/viva/direct.yaml
+@@ -4,21 +4,25 @@ includes:
+ optimizer:
+   type: adam_w
+   params:
+-    lr: 5e-7 #5e-5
+-    eps: 1e-10 #1e-8
++    lr: 0.0001 #5e-5 
++    eps: 1e-8 #1e-8
+ 
+ scheduler:
+   type: warmup_cosine
+   params:
+-    num_warmup_steps: 15
+-    num_training_steps: 150
++    num_warmup_steps: 1
++    num_training_steps: 5
+ 
+ training:
+-  batch_size: 64
+-  lr_scheduler: true
++  batch_size: 256
++  lr_scheduler: false
+   # Don't forget to update schedule_attributes if you update this
+-  max_updates: 50
++  max_updates: 5
++  max_epochs: 1
+   find_unused_parameters: true
+   early_stop:
+-    criteria: Viva/logit_bce
++    enabled: false
++    patience: 2
++    criteria: viva/logit_bce
+     minimize: true
++

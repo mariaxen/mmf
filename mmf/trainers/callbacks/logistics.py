@@ -158,7 +158,11 @@ class LogisticsCallback(Callback):
             tb_writer=self.tb_writer,
             wandb_logger=self.wandb_logger,
         )
+        
         logger.info(f"Finished run in {self.total_timer.get_time_since_start()}")
+
+        import wandb
+        wandb.finish()
 
     def teardown(self):
         if self.tb_writer is not None:

@@ -16,7 +16,7 @@ import wandb
 
 class VivaDataset(BaseDataset):
     def __init__(self, config, dataset_type, imdb_file_index, *args, **kwargs):
-        super().__init__("Viva", config, dataset_type)
+        super().__init__("viva", config, dataset_type)
         self.imdb_file_index = imdb_file_index
         self.load_df()
         self.length = len(self.video_clips)
@@ -90,11 +90,10 @@ class VivaDataset(BaseDataset):
     ):
         self.labels = df[column_map.get("labels", "labels")].tolist()
         self.tabular_list = df[column_map.get("tabular", "tabular")].values.tolist()
-        self.idx_to_class = sorted(
-            list(set([item for sublist in self.labels for item in sublist]))
-        )
+        self.idx_to_class = sorted(list(set([item for sublist in self.labels for item in sublist])))
         self.classes = self.idx_to_class
-        self.class_to_idx = {self.classes[i]: i for i in range(len(self.classes))}
+        #self.class_to_idx = {self.classes[i]: i for i in range(len(self.classes))}
+        self.class_to_idx =  {'admitted': 1, 'discharged': 0}
         self.text_list = df[column_map.get("text", "text")].tolist()
         self.ids_list = df[column_map.get("id", "id")].tolist()
 

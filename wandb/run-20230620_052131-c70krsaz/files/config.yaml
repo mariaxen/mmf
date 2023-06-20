@@ -1,0 +1,29 @@
+wandb_version: 1
+
+batch_size:
+  desc: null
+  value: 64
+learning_rate:
+  desc: null
+  value: 0.024980748978770458
+_wandb:
+  desc: null
+  value:
+    code_path: code/mmf_cli/wandb_sweep_run.py
+    python_version: 3.7.12
+    cli_version: 0.15.4
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1687238491.172495
+    t:
+      1:
+      - 55
+      2:
+      - 55
+      3:
+      - 23
+      - 37
+      4: 3.7.12
+      5: 0.15.4
+      8:
+      - 5

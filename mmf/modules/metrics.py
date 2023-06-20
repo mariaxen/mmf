@@ -268,7 +268,6 @@ class ConfusionMatrixMetric(BaseMetric):
 
         """
         output = model_output[self.score_key]
-        batch_size = output.shape[0]
         expected = sample_list[self.target_key]
 
         assert (
@@ -285,16 +284,17 @@ class ConfusionMatrixMetric(BaseMetric):
         # If last dim is 1, we directly have class indices
         if expected.dim() == 2 and expected.size(-1) != 1:
             expected = expected.topk(self.topk, 1, True, True)[1].t().squeeze()
+            #expected = 1-expected.argmax(dim=-1)
         
         # Compute false positives, true positives, false negatives, true negatives
-        FP = ((output == 1) & (expected == 0)).sum().float()
-        FN = ((output == 0) & (expected == 1)).sum().float()
-        TP = ((output == 1) & (expected == 1)).sum().float()
-        TN = ((output == 0) & (expected == 0)).sum().float()
-        predicted_admitted=((output == 1)).sum().float()
-        predicted_discharged=((output == 0)).sum().float()
-        actual_admitted=((expected == 1)).sum().float()
-        actual_discharged=((expected == 0)).sum().float()
+        FP = ((output == 1) & (expected == 0)).sum().float()*8
+        FN = ((output == 0) & (expected == 1)).sum().float()*8
+        TP = ((output == 1) & (expected == 1)).sum().float()*8
+        TN = ((output == 0) & (expected == 0)).sum().float()*8
+        predicted_admitted=((output == 1)).sum().float()*8
+        predicted_discharged=((output == 0)).sum().float()*8
+        actual_admitted=((expected == 1)).sum().float()*8
+        actual_discharged=((expected == 0)).sum().float()*8
 
         #return {"false_positives": FP, "true_positives": TP, "false_negatives": FN, "true_negatives": TN, 
          #       "admitted": admitted, "discharged": discharged, "batch_size": batch_size}

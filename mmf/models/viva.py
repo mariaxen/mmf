@@ -37,25 +37,25 @@ class Viva_model(BaseModel):
                             )
 
     def forward(self, sample_list):
-        video = sample_list["video"]  
-        video_features = self.video_module(video)
+        #video = sample_list["video"]  
+        #video_features = self.video_module(video)
         #TO DO: pooling
-        video_features = video_features[0][:, 0]
+        #video_features = video_features[0][:, 0]
 
-        audio = sample_list["audio"]  
-        audio_features = self.audio_module(audio).squeeze()
+        #audio = sample_list["audio"]  
+        #audio_features = self.audio_module(audio).squeeze()
 
-        text = sample_list["text"]  
-        input_ids = torch.stack([torch.tensor(x) for x in text])
-        text_features = self.text_module(input_ids=input_ids)
+        #text = sample_list["text"]  
+        #input_ids = torch.stack([torch.tensor(x) for x in text])
+        #text_features = self.text_module(input_ids=input_ids)
 
         tabular = sample_list["tabular"] 
         tabular_features = self.tabular_transform(tabular)
-        tabular_features = self.tabular_batchnorm(tabular_features)
+        #tabular_features = self.tabular_batchnorm(tabular_features)
 
-        combined = torch.cat([audio_features, video_features, text_features, tabular_features], dim=1)
-        interacted = self.interaction_layer(combined)
-        interacted = self.dropout(interacted)
+        #combined = torch.cat([audio_features, video_features, text_features, tabular_features], dim=1)
+        #interacted = self.interaction_layer(combined)
+        interacted = self.dropout(tabular_features)
         scores = self.classifier(interacted)
 
         return {"scores": scores}

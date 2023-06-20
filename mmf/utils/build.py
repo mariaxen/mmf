@@ -323,7 +323,7 @@ def build_dataloader_and_sampler(
         collate_fn=BatchCollator(
             dataset_instance.dataset_name, dataset_instance.dataset_type
         ),
-        drop_last=is_xla(),  # see also MultiDatasetLoader.__len__
+        drop_last= True, #is_xla(),  # see also MultiDatasetLoader.__len__
         **other_args,
     )
 
